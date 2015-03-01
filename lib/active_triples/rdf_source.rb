@@ -169,8 +169,7 @@ module ActiveTriples
     end
 
     def node?
-      return true if rdf_subject.kind_of? RDF::Node
-      false
+      rdf_subject.node?
     end
 
     ##
