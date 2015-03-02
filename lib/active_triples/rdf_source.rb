@@ -45,9 +45,6 @@ module ActiveTriples
     include ActiveModel::Serialization
     include ActiveModel::Serializers::JSON
 
-    #TODO: delegate
-    attr_accessor :parent
-
     def type_registry
       @@type_registry ||= {}
     end
@@ -85,7 +82,10 @@ module ActiveTriples
     # @todo move this logic out to a Builder?
     def initialize(*args, &block)
       resource_uri = args.shift unless args.first.is_a?(Hash)
-      self.parent = args.shift unless args.first.is_a?(Hash)
+      unless args.first.is_a?(Hash) || args.empty?
+        set_persistence_strategy(ParentStrategy)
+        persistence_strategy.parent = args.shift
+      end
       @graph = RDF::Graph.new(*args, &block)
       set_subject!(resource_uri) if resource_uri
 
@@ -95,15 +95,25 @@ module ActiveTriples
     end
 
     ##
-    # TODO: Remove
+    # Delegate parent to the persistence strategy if possible
+    #
+    # @todo establish a better pattern for this. `#parent` has been a public method
+    #   in the past, but it's probably time to deprecate it.
+    def parent
+      persistence_strategy.respond_to?(:parent) ? persistence_strategy.parent : nil
+    end
+
+    ##
+    # @see #parent
+    def parent=(parent)
+      persistence_strategy.respond_to?(:parent=) ? (persistence_strategy.parent = parent) : nil
+    end
+
+    ##
+    # @see #parent
+    # @todo Remove
     def final_parent
-      @final_parent ||= begin
-        parent = self.parent
-        while parent && parent.parent && parent.parent != parent
-          parent = parent.parent
-        end
-        parent
-      end
+      persistence_strategy.final_parent
     end
 
     def attributes
@@ -487,12 +497,10 @@ module ActiveTriples
       #   repository
       def repository
         @repository ||=
-          if self.class.repository == :parent
+          if parent
             final_parent
           else
-            repo = Repositories.repositories[self.class.repository]
-            raise RepositoryNotFoundError, "The class #{self.class} expects a repository called #{self.class.repository}, but none was declared" unless repo
-            repo
+            persistence_strategy.repository
           end
       end
 

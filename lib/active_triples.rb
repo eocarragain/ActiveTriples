@@ -19,6 +19,7 @@ module ActiveTriples
     autoload :NestedAttributes
     autoload :Identifiable
     autoload :ParentStrategy, 'active_triples/persistence_strategies/parent_strategy'
+    autoload :RepositoryStrategy, 'active_triples/persistence_strategies/repository_strategy'
 
     # deprecated class
     autoload :Term, 'active_triples/relation'
