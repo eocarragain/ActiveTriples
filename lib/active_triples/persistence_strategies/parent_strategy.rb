@@ -1,7 +1,7 @@
 module ActiveTriples
   ##
   # Persistence strategy for projecting `RDFSource`s onto the graph of an owning
-  # parent source. This allows individual resourcesy to be treated as within the
+  # parent source. This allows individual resources to be treated as within the
   # scope of another `RDFSource`.
   class ParentStrategy
     # @!attribute [r] obj
@@ -48,6 +48,29 @@ module ActiveTriples
     # Persists the object to the final parent.
     def persist!
       final_parent << @obj
+      @persisted = true
+    end
+
+    ##
+    # Indicates if the resource is persisted to parent
+    #
+    # @return [Boolean] true if persisted; else false.
+    def persisted?
+      @persisted ||= false
+      # The following was untested(?) logic from ActiveTriples::RDFSource
+      # what was its purpose?
+      #
+      # @persisted && parent.persisted?
+    end
+
+    ##
+    # Repopulates the graph from parent.
+    #
+    # @return [Boolean]
+    def reload
+      obj << final_parent.query(subject: obj.rdf_subject)
+      @persisted = true unless obj.empty?
+      true
     end
 
     class NilParentError < RuntimeError; end

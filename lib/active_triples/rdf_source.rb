@@ -248,14 +248,15 @@ module ActiveTriples
 
     def persist!(opts={})
       return if @persisting
-      return false if opts[:validate] && !valid?
+      result = false
+      return result if opts[:validate] && !valid?
       @persisting = true
       run_callbacks :persist do
-        erase_old_resource
-        persistence_strategy.persist!
+        erase_old_resource unless repository.is_a? RDF::Repository
+        result = persistence_strategy.persist!
       end
       @persisting = false
-      true
+      result
     end
 
     ##
@@ -265,21 +266,15 @@ module ActiveTriples
     # @return [true, false]
     def persisted?
       persistence_strategy.persisted?
-      # return (@persisted and parent.persisted?) if parent
     end
 
     ##
-    # Repopulates the graph from the repository or parent resource.
+    # Repopulates the graph according to the persistence strategy
     #
     # @return [true, false]
     def reload
-      @relation_cache ||= {}
-      return false unless repository
-      self << repository.query(subject: rdf_subject)
-      unless empty?
-        @persisted = true
-      end
-      true
+      @term_cache ||= {}
+      persistence_strategy.reload
     end
 
     ##
@@ -420,12 +415,12 @@ module ActiveTriples
             repository.send(:delete_statement, statement) if
               statement.subject == rdf_subject
           end
-        else
+          else
           repository.delete [rdf_subject, nil, nil]
         end
       end
 
-      private
+    private
 
       def graph
         @graph
@@ -539,11 +534,11 @@ module ActiveTriples
       # which can become a Resource.
       #
       # @param uri [#to_uri, String]
-      # @param vals values to pass as arguments to ::new
+      # @param args values to pass as arguments to ::new
       #
       # @return [ActiveTriples::Entity] a Resource with the given uri
-      def from_uri(uri, vals = nil)
-        new(uri, vals)
+      def from_uri(uri, *args)
+        new(uri, *args)
       end
 
       ##

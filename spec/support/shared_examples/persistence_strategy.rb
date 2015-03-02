@@ -18,5 +18,18 @@ shared_examples 'a persistence strategy' do
     end
   end
 
-  describe '#persisted?'
+  describe '#persisted?' do
+    context 'before persist!' do
+      it 'returns false' do
+        expect(subject).not_to be_persisted
+      end
+    end
+
+    context 'after persist!' do
+      it 'returns true' do
+        subject.persist!
+        expect(subject).to be_persisted
+      end
+    end
+  end
 end

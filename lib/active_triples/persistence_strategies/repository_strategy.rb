@@ -13,11 +13,25 @@ module ActiveTriples
       @obj = obj
     end
 
+    #Clear out any old assertions in the repository about this node or statement
+    # thus preparing to receive the updated assertions.
+    def erase_old_resource
+      if obj.node?
+        repository.statements.each do |statement|
+          repository.send(:delete_statement, statement) if
+            statement.subject == obj.rdf_subject
+        end
+      else
+        repository.delete [obj.rdf_subject, nil, nil]
+      end
+    end
+
     ##
     # Persists the object to the repository
     #
     # @return [Boolean]
     def persist!
+      erase_old_resource
       repository << obj
       @persisted = true
     end
@@ -33,12 +47,10 @@ module ActiveTriples
     ##
     # Repopulates the graph from the repository.
     #
-    # @return [true, false]
+    # @return [Boolean]
     def reload
       obj << repository.query(subject: obj.rdf_subject)
-      unless obj.empty?
-        @persisted = true
-      end
+      @persisted = true unless obj.empty?
       true
     end
 
