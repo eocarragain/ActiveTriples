@@ -13,24 +13,59 @@ module ActiveTriples
       @obj = obj
     end
 
+    ##
+    # Persists the object to the repository
+    #
+    # @return [Boolean]
     def persist!
       repository << obj
+      @persisted = true
     end
 
+    ##
+    # Indicates if the resource is persisted to the repository
+    #
+    # @return [Boolean] true if persisted; else false.
+    def persisted?
+      @persisted ||= false
+    end
+
+    ##
+    # Repopulates the graph from the repository.
+    #
+    # @return [true, false]
+    def reload
+      obj << repository.query(subject: obj.rdf_subject)
+      unless obj.empty?
+        @persisted = true
+      end
+      true
+    end
+
+    ##
+    # @return [RDF::Repository] The RDF::Repository that the object will project
+    #   itself on when persisting.
     def repository
       @repository ||= set_repository
     end
 
     private
 
-    def set_repository
-      repo_sym = obj.singleton_class.repository
-      if repo_sym.nil?
-        RDF::Repository.new
-      else
-        repo = Repositories.repositories[repo_sym]
-        repo || raise(RepositoryNotFoundError, "The class #{obj.class} expects a repository called #{repo_sym}, but none was declared")
+      ##
+      # Finds an appropriate repository from the calling object's configuration.
+      # If no repository is configured, builds an ephemeral in-memory
+      # repository and 'persists' there.
+      #
+      # @todo find a way to move this logic out (PersistenceStrategyBuilder?).
+      #   so the dependency on Repositories is externalized.
+      def set_repository
+        repo_sym = obj.singleton_class.repository
+        if repo_sym.nil?
+          RDF::Repository.new
+        else
+          repo = Repositories.repositories[repo_sym]
+          repo || raise(RepositoryNotFoundError, "The class #{obj.class} expects a repository called #{repo_sym}, but none was declared")
+        end
       end
-    end
   end
 end

@@ -253,7 +253,6 @@ module ActiveTriples
       run_callbacks :persist do
         erase_old_resource
         persistence_strategy.persist!
-        @persisted = true
       end
       @persisting = false
       true
@@ -265,9 +264,8 @@ module ActiveTriples
     # @see #persist
     # @return [true, false]
     def persisted?
-      @persisted ||= false
-      return (@persisted and parent.persisted?) if parent
-      @persisted
+      persistence_strategy.persisted?
+      # return (@persisted and parent.persisted?) if parent
     end
 
     ##
@@ -401,7 +399,7 @@ module ActiveTriples
     #
     # @return [true, false]
     def new_record?
-      not persisted?
+      not persistence_strategy.persisted?
     end
 
     def mark_for_destruction
@@ -419,7 +417,8 @@ module ActiveTriples
       def erase_old_resource
         if node?
           repository.statements.each do |statement|
-            repository.send(:delete_statement, statement) if statement.subject == rdf_subject
+            repository.send(:delete_statement, statement) if
+              statement.subject == rdf_subject
           end
         else
           repository.delete [rdf_subject, nil, nil]
@@ -497,12 +496,11 @@ module ActiveTriples
       # @return [RDF::Repository, ActiveTriples::Entity] the target
       #   repository
       def repository
-        @repository ||=
-          if parent
-            final_parent
-          else
-            persistence_strategy.repository
-          end
+        if parent
+          final_parent
+        else
+          persistence_strategy.repository
+        end
       end
 
       ##
