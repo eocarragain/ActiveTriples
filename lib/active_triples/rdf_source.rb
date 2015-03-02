@@ -85,6 +85,8 @@ module ActiveTriples
       unless args.first.is_a?(Hash) || args.empty?
         set_persistence_strategy(ParentStrategy)
         persistence_strategy.parent = args.shift
+      else
+        set_persistence_strategy(RepositoryStrategy)
       end
       @graph = RDF::Graph.new(*args, &block)
       set_subject!(resource_uri) if resource_uri
@@ -249,9 +251,8 @@ module ActiveTriples
       return false if opts[:validate] && !valid?
       @persisting = true
       run_callbacks :persist do
-        raise "failed when trying to persist to non-existant repository or parent resource" unless repository
         erase_old_resource
-        repository << self
+        persistence_strategy.persist!
         @persisted = true
       end
       @persisting = false

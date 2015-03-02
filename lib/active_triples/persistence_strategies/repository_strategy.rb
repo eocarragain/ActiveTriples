@@ -14,22 +14,22 @@ module ActiveTriples
     end
 
     def persist!
-      require 'pry'
-      binding.pry
-    end
-
-    def persisted?
+      repository << obj
     end
 
     def repository
-      @repository ||= begin
-        repo_sym = obj.singleton_class.repository
-        if repo_sym.nil?
-          RDF::Repository.new
-        else
-          repo = Repositories.repositories[repo_sym]
-          repo || raise(RepositoryNotFoundError, "The class #{obj.class} expects a repository called #{repo_sym}, but none was declared")
-        end
+      @repository ||= set_repository
+    end
+
+    private
+
+    def set_repository
+      repo_sym = obj.singleton_class.repository
+      if repo_sym.nil?
+        RDF::Repository.new
+      else
+        repo = Repositories.repositories[repo_sym]
+        repo || raise(RepositoryNotFoundError, "The class #{obj.class} expects a repository called #{repo_sym}, but none was declared")
       end
     end
   end
