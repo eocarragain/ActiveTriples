@@ -94,6 +94,7 @@ module ActiveTriples
     #    new(nil, parent)
     #
     # @see RDF::Graph
+    # @todo move this logic out to a Builder?
     def initialize(*args, &block)
       resource_uri = args.shift unless args.first.is_a?(Hash)
       self.parent = args.shift unless args.first.is_a?(Hash)
