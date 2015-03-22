@@ -97,6 +97,50 @@ module ActiveTriples
     end
 
     ##
+    # Romoves the statements in this RDFSource's graph from the persisted graph
+    #
+    # @return [Boolean]
+    def destroy
+      persistence_strategy.destroy
+    end
+    alias_method :destroy!, :destroy
+
+    ##
+    # Sends a persistence message to the persistence_startegy, saving the
+    # RDFSource.
+    #
+    # @return [Boolean]
+    def persist!(opts={})
+      return if @persisting
+      result = false
+      return result if opts[:validate] && !valid?
+      @persisting = true
+      run_callbacks :persist do
+        result = persistence_strategy.persist!
+      end
+      @persisting = false
+      result
+    end
+
+    ##
+    # Indicates if the resource is persisted.
+    #
+    # @see #persist
+    # @return [true, false]
+    def persisted?
+      persistence_strategy.persisted?
+    end
+
+    ##
+    # Repopulates the graph according to the persistence strategy
+    #
+    # @return [Boolean]
+    def reload
+      @term_cache ||= {}
+      persistence_strategy.reload
+    end
+
+    ##
     # Delegate parent to the persistence strategy if possible
     #
     # @todo establish a better pattern for this. `#parent` has been a public method
@@ -238,45 +282,6 @@ module ActiveTriples
     def fetch
       load(rdf_subject)
       self
-    end
-
-    def persist!(opts={})
-      return if @persisting
-      result = false
-      return result if opts[:validate] && !valid?
-      @persisting = true
-      run_callbacks :persist do
-        result = persistence_strategy.persist!
-      end
-      @persisting = false
-      result
-    end
-
-    ##
-    # Romoves the statements in this RDFSource's graph from the persisted graph
-    #
-    # @return [Boolean]
-    def destroy
-      persistence_strategy.destroy
-    end
-    alias_method :destroy!, :destroy
-
-    ##
-    # Indicates if the resource is persisted.
-    #
-    # @see #persist
-    # @return [true, false]
-    def persisted?
-      persistence_strategy.persisted?
-    end
-
-    ##
-    # Repopulates the graph according to the persistence strategy
-    #
-    # @return [Boolean]
-    def reload
-      @term_cache ||= {}
-      persistence_strategy.reload
     end
 
     ##
