@@ -12,6 +12,7 @@ shared_examples 'a persistence strategy' do
 
     context 'with changes' do
       include_context 'with changes'
+
       it 'evaluates false with no changes' do
         expect(subject.persist!).to be_truthy
       end

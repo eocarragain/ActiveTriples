@@ -111,13 +111,6 @@ module ActiveTriples
       persistence_strategy.respond_to?(:parent=) ? (persistence_strategy.parent = parent) : nil
     end
 
-    ##
-    # @see #parent
-    # @todo Remove
-    def final_parent
-      persistence_strategy.final_parent
-    end
-
     def attributes
       attrs = {}
       attrs['id'] = id if id
@@ -180,7 +173,8 @@ module ActiveTriples
     alias_method :to_term, :rdf_subject
 
     ##
-    # A string identifier for the resource
+    # @return [String, nil] A string identifier for the resource; nil if the
+    #   resource is a node
     def id
       node? ? nil : rdf_subject.to_s
     end
@@ -252,12 +246,20 @@ module ActiveTriples
       return result if opts[:validate] && !valid?
       @persisting = true
       run_callbacks :persist do
-        erase_old_resource unless repository.is_a? RDF::Repository
         result = persistence_strategy.persist!
       end
       @persisting = false
       result
     end
+
+    ##
+    # Romoves the statements in this RDFSource's graph from the persisted graph
+    #
+    # @return [Boolean]
+    def destroy
+      persistence_strategy.destroy
+    end
+    alias_method :destroy!, :destroy
 
     ##
     # Indicates if the resource is persisted.
@@ -271,7 +273,7 @@ module ActiveTriples
     ##
     # Repopulates the graph according to the persistence strategy
     #
-    # @return [true, false]
+    # @return [Boolean]
     def reload
       @term_cache ||= {}
       persistence_strategy.reload
@@ -328,7 +330,6 @@ module ActiveTriples
       get_relation([uri_or_term_property])
     end
 
-
     def get_relation(args)
       @relation_cache ||= {}
       rel = Relation.new(self, args)
@@ -367,22 +368,6 @@ module ActiveTriples
       end
     end
 
-    def destroy
-      clear
-      persist! if repository
-      parent.destroy_child(self) if parent
-      @destroyed = true
-    end
-    alias_method :destroy!, :destroy
-
-    ##
-    # Indicates if the Resource has been destroyed.
-    #
-    # @return [true, false]
-    def destroyed?
-      @destroyed ||= false
-    end
-
     def destroy_child(child)
       statements.each do |statement|
         delete_statement(statement) if statement.subject == child.rdf_subject || statement.object == child.rdf_subject
@@ -392,9 +377,9 @@ module ActiveTriples
     ##
     # Indicates if the record is 'new' (has not yet been persisted).
     #
-    # @return [true, false]
+    # @return [Boolean]
     def new_record?
-      not persistence_strategy.persisted?
+      not persisted?
     end
 
     def mark_for_destruction
@@ -404,21 +389,6 @@ module ActiveTriples
     def marked_for_destruction?
       @marked_for_destruction
     end
-
-    protected
-
-      #Clear out any old assertions in the repository about this node or statement
-      # thus preparing to receive the updated assertions.
-      def erase_old_resource
-        if node?
-          repository.statements.each do |statement|
-            repository.send(:delete_statement, statement) if
-              statement.subject == rdf_subject
-          end
-          else
-          repository.delete [rdf_subject, nil, nil]
-        end
-      end
 
     private
 
@@ -482,20 +452,6 @@ module ActiveTriples
          RDF::RDFS.label,
          RDF::SKOS.altLabel,
          RDF::SKOS.hiddenLabel]
-      end
-
-      ##
-      # Return the repository (or parent) that this resource should
-      # write to when persisting.
-      #
-      # @return [RDF::Repository, ActiveTriples::Entity] the target
-      #   repository
-      def repository
-        if parent
-          final_parent
-        else
-          persistence_strategy.repository
-        end
       end
 
       ##

@@ -17,6 +17,35 @@ module ActiveTriples
       @obj = obj
     end
 
+    def destroy
+      obj.clear
+      persist!
+      parent.destroy_child(obj) if parent
+      @destroyed = true
+    end
+    alias_method :destroy!, :destroy
+
+    ##
+    # Indicates if the Resource has been destroyed.
+    #
+    # @return [true, false]
+    def destroyed?
+      @destroyed ||= false
+    end
+
+    # Clear out any old assertions in the repository about this node or statement
+    # thus preparing to receive the updated assertions.
+    def erase_old_resource
+      if obj.rdf_subject.node?
+        final_parent.statements.each do |statement|
+          final_parent.send(:delete_statement, statement) if
+            statement.subject == obj.rdf_subject
+        end
+      else
+        final_parent.delete [obj.rdf_subject, nil, nil]
+      end
+    end
+
     ##
     # @return [#persist!] the last parent in a chain from `parent` (e.g.
     #   the parent's parent's parent). This is the RDF::Mutable that the
@@ -47,7 +76,8 @@ module ActiveTriples
     ##
     # Persists the object to the final parent.
     def persist!
-      final_parent << @obj
+      erase_old_resource
+      final_parent << obj
       @persisted = true
     end
 

@@ -13,10 +13,11 @@ module ActiveTriples
       @obj = obj
     end
 
-    #Clear out any old assertions in the repository about this node or statement
+    ##
+    # Clear out any old assertions in the repository about this node or statement
     # thus preparing to receive the updated assertions.
     def erase_old_resource
-      if obj.node?
+      if obj.rdf_subject.node?
         repository.statements.each do |statement|
           repository.send(:delete_statement, statement) if
             statement.subject == obj.rdf_subject
@@ -24,6 +25,25 @@ module ActiveTriples
       else
         repository.delete [obj.rdf_subject, nil, nil]
       end
+    end
+
+    ##
+    # Deletes the resource from the repository.
+    #
+    # @return [Boolean] true if the resource was sucessfully destroyed
+    def destroy
+      obj.clear
+      persist!
+      @destroyed = true
+    end
+    alias_method :destroy!, :destroy
+
+    ##
+    # Indicates if the Resource has been destroyed.
+    #
+    # @return [Boolean]
+    def destroyed?
+      @destroyed ||= false
     end
 
     ##

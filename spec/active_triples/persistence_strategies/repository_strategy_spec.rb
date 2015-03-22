@@ -4,7 +4,7 @@ describe ActiveTriples::RepositoryStrategy do
   subject { described_class.new(rdf_source) }
   let(:rdf_source) { ActiveTriples::Resource.new }
 
-  let(:statement) { RDF::Statement.new(RDF::Node.new, RDF::DC.title, 'moomin') }
+  let(:statement) { RDF::Statement.new(rdf_source, RDF::DC.title, 'moomin') }
 
   it_behaves_like 'a persistence strategy'
 
@@ -15,6 +15,48 @@ describe ActiveTriples::RepositoryStrategy do
     end
   end
 
+  describe '#destroy' do
+    shared_examples 'destroy resource' do
+      it 'removes the resource from the repository' do
+        subject.persist!
+        expect { subject.destroy }
+          .to change { subject.repository.count }.from(1).to(0)
+      end
+    end
+
+    it 'marks resource as destroyed' do
+      subject.destroy
+      expect(subject).to be_destroyed
+    end
+
+    it 'leaves other resources unchanged' do
+      subject.repository <<
+        RDF::Statement(RDF::Node.new, RDF::DC.title, 'snorkmaiden')
+      expect { subject.destroy }
+        .not_to change { subject.repository.count }
+    end
+
+    context 'with statements' do
+      before { rdf_source << statement }
+
+      include_examples 'destroy resource'
+
+      context 'with subjects' do
+        before do
+          subject.obj.set_subject! RDF::URI('http://example.org/moomin')
+        end
+
+        include_examples 'destroy resource'
+      end
+    end
+  end
+
+  describe '#destroyed?' do
+    it 'is false' do
+      expect(subject).not_to be_destroyed
+    end
+  end
+
   describe '#persist!' do
     it 'writes to #repository' do
       rdf_source << statement
@@ -22,6 +64,11 @@ describe ActiveTriples::RepositoryStrategy do
       expect(subject.repository.statements)
           .to contain_exactly *rdf_source.statements
     end
+  end
+
+  describe '#erase_old_resource' do
+    it 'removes statements with subject from the repository'
+    it 'removes statements about node from the repository'
   end
 
   describe '#reload' do
@@ -39,10 +86,6 @@ describe ActiveTriples::RepositoryStrategy do
 
         let(:repo) { RDF::Repository.new }
       end
-
-      # it 'overrides ' do
-      #   expect(subject.reload).to be true
-      # end
     end
   end
 
