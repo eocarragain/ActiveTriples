@@ -3,13 +3,11 @@ require 'spec_helper'
 describe ActiveTriples::Resource do
   # it_behaves_like 'an ActiveModel'
   before do
-    class DummyLicense
-      include ActiveTriples::RDFSource
+    class DummyLicense < ActiveTriples::Resource
       property :title, :predicate => RDF::DC.title
     end
 
-    class DummyResource
-      include ActiveTriples::RDFSource
+    class DummyResource < ActiveTriples::Resource
       configure :type => RDF::URI('http://example.org/SomeClass')
       property :license, :predicate => RDF::DC.license, :class_name => DummyLicense
       property :title, :predicate => RDF::DC.title
@@ -202,8 +200,7 @@ describe ActiveTriples::Resource do
     subject {DummyResourceWithBaseURI.new('1')}
 
     before do
-      class DummyResourceWithBaseURI
-        include ActiveTriples::RDFSource
+      class DummyResourceWithBaseURI < ActiveTriples::Resource
         configure :base_uri => "http://example.org",
                   :type => RDF::URI("http://example.org/SomeClass"),
                   :repository => :default
@@ -249,8 +246,7 @@ describe ActiveTriples::Resource do
     subject {DummyResourceWithBaseURI.new('11')}
 
     before do
-      class DummyResourceWithBaseURI
-        include ActiveTriples::RDFSource
+      class DummyResourceWithBaseURI < ActiveTriples::Resource
         configure :base_uri => "http://example.org",
                   :type => RDF::URI("http://example.org/SomeClass"),
                   :repository => :default
@@ -407,7 +403,7 @@ describe ActiveTriples::Resource do
       end
 
       it 'should return generic Resources' do
-        expect(subject.attributes[RDF::DC.relation.to_s].first).to be_a ActiveTriples::RDFSource
+        expect(subject.attributes[RDF::DC.relation.to_s].first).to be_a ActiveTriples::Resource
       end
 
       it 'should build deep data for Resources' do
