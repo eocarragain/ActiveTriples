@@ -4,18 +4,32 @@ require 'active_support/core_ext/hash'
 
 module ActiveTriples
   ##
-  # Defines a concern for managing `RDF::Graph` driven Resources as discrete,
-  # stateful subgraphs. Comes with property configuration, accessors, and
-  # persistence to `RDF::Repositories`.
+  # Defines a concern for managing {RDF::Graph} driven Resources as discrete,
+  # stateful subgraphs, using ActiveModel-style objects.
   #
+  # RDF Sources are containers of one or more graphs that represent the current
+  # state of the resource identified by {#rdf_subject}. Sources are
+  # a projection on an  # {RDF::Graph}, accessible as {#graph}. This graph may
+  # contain arbitrary triples, including full representations (i.e, graphs) of
+  # other sources, but should be limited to statements that have bearing on the
+  # resource's state.
+  #
+  # @example
   #    class License
-  #      include Active::Triples::Entity
+  #      include Active::Triples::RDFSource
   #
   #      configure repository: :default
   #      property :title, predicate: RDF::DC.title, class_name: RDF::Literal
   #    end
   #
   # @see http://www.w3.org/TR/2014/REC-rdf11-concepts-20140225/#change-over-time
+  #   RDF Concepts and Abstract Syntax comment on "RDF source"
+  # @see http://www.w3.org/TR/ldp/#dfn-linked-data-platform-rdf-source an
+  #   example of the RDF source concept as defined in the LDP specification
+  #
+  # @see ActiveModel
+  # @see RDF::Value
+  # @see RDF::Queryable
   module RDFSource
     extend ActiveSupport::Concern
 
@@ -168,6 +182,9 @@ module ActiveTriples
       node? ? nil : rdf_subject.to_s
     end
 
+    ##
+    # @return [Boolean]
+    # @see RDF::Term#node?
     def node?
       rdf_subject.node?
     end
