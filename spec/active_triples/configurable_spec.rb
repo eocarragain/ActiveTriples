@@ -7,9 +7,7 @@ describe ActiveTriples::Configurable do
     end
   end
 
-  after do
-    Object.send(:remove_const, "DummyConfigurable")
-  end
+  after { Object.send(:remove_const, "DummyConfigurable") }
 
   it "should be okay if not configured" do
     expect(DummyConfigurable.type).to eq nil
@@ -18,6 +16,27 @@ describe ActiveTriples::Configurable do
   it "should be okay if configured to nil" do
     DummyConfigurable.configure :type => nil
     expect(DummyConfigurable.type).to eq []
+  end
+
+  describe 'configuration inheritance' do
+    before do
+      DummyConfigurable.configure type: type,
+                                  base_uri: base_uri,
+                                  rdf_label: rdf_label,
+                                  repository: repository
+      class ConfigurableSubclass < DummyConfigurable; end
+    end
+
+    let(:type) { RDF::FOAF.Person }
+    let(:base_uri) { 'http://example.org/moomin' }
+    let(:rdf_label) { RDF::DC.title }
+    let(:repository) { RDF::Repository.new }
+
+    after { Object.send(:remove_const, "ConfigurableSubclass") }
+      
+    it 'inherits type from parent' do
+      expect(ConfigurableSubclass.type).to eq DummyConfigurable.type
+    end
   end
 
   describe '#configure' do
